@@ -2,10 +2,12 @@ package luongduongquan.com.noboringactionbaractivity;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.content.res.Resources;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableString;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
@@ -14,6 +16,7 @@ import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 
@@ -53,6 +56,9 @@ public class NoBoringActionBarActivity extends Activity {
 
         // "-mHeaderHeight" vì mình sẽ đẩy cái header này lên trên chứ ko có resize hay cắt nó.
         // + thêm cái ActionBarHeight để hiển thị ActionBar khi kéo cái header lên.
+        // Phần text Title trong header là do mình định nghĩa bên file style.xml.
+        Log.d("QUAN1", "mHeaderHeight: " + mHeaderHeight);
+        Log.d("QUAN2", "getActionBarHeight: " + getActionBarHeight());
         mMinHeaderTranslation = -mHeaderHeight + getActionBarHeight();
 
         setContentView(R.layout.activity_noboringactionbar);
@@ -100,15 +106,25 @@ public class NoBoringActionBarActivity extends Activity {
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
                 int scrollY = getScrollY();
                 //sticky actionbar
+                Log.d("QUAN1", "scrollY: " + scrollY);
+                Log.d("QUAN2", "mMinHeaderTranslation: " + mMinHeaderTranslation);
+
+                // Khi mình scroll cái listView thì nó sẽ đẩy cái Header lên trên, và tối đa sẽ ko
                 mHeader.setTranslationY(Math.max(-scrollY, mMinHeaderTranslation));
                 //header_logo --> actionbar icon
+                // clamp ở đây là thuật toán để lấy ra giá trị nằm trong khoảng 0.0f->1.0f.
+                // Nếu giá trị lớn hơn 1.0f => lấy 1.0f
+                // Nếu giá trị bé hơn 0.0f => lấy 0.0f
+                // Ở đây sẽ
+                Log.d("QUAN3", "mHeader.getTranslationY(): " + mHeader.getTranslationY());
                 float ratio = clamp(mHeader.getTranslationY() / mMinHeaderTranslation, 0.0f, 1.0f);
+                Log.d("QUAN4", "ratio: " + ratio +"\n"+ "===================");
                 interpolate(mHeaderLogo, getActionBarIconView(), mSmoothInterpolator.getInterpolation(ratio));
                 //actionbar title alpha
-                //getActionBarTitleView().setAlpha(clamp(5.0F * ratio - 4.0F, 0.0F, 1.0F));
+                getActionBarTitleView().setAlpha(clamp(5.0F * ratio - 4.0F, 0.0F, 1.0F));
                 //---------------------------------
                 //better way thanks to @cyrilmottier
-                setTitleAlpha(clamp(5.0F * ratio - 4.0F, 0.0F, 1.0F));
+//                setTitleAlpha(clamp(5.0F * ratio - 4.0F, 0.0F, 1.0F));
             }
         });
     }
@@ -145,6 +161,7 @@ public class NoBoringActionBarActivity extends Activity {
 
     public int getScrollY() {
         View c = mListView.getChildAt(0);
+
         if (c == null) {
             return 0;
         }
@@ -157,30 +174,39 @@ public class NoBoringActionBarActivity extends Activity {
             headerHeight = mPlaceHolderView.getHeight();
         }
 
-        Log.d("QUAN1", "top: " + top);
-        Log.d("QUAN2", "firstVisiblePosition: " + firstVisiblePosition);
-        Log.d("QUAN3", "c.getHeight(): " + c.getHeight());
-        Log.d("QUAN4", "headerHeight: " + headerHeight);
-        Log.d("QUAN5", "" + (-top + firstVisiblePosition * c.getHeight() + headerHeight));
+//        Log.d("QUAN1", "top: " + top + " --- " + "mListView.getHeaderViewsCount(): " + mListView.getHeaderViewsCount() );
+//        Log.d("QUAN12", "mListView.height: " + mListView.getHeight() + " --- " + "getDividerHeight: " + mListView.getDividerHeight() );
+//        Log.d("QUAN2", "firstVisiblePosition: " + firstVisiblePosition);
+//        Log.d("QUAN3", "c.getHeight(): " + c.getHeight() + " --- " + "c.getMeasuredHeight(): " + c.getMeasuredHeight());
+//        Log.d("QUAN3333", "Height In DP: " + pxToDp(c.getHeight()));
+//
+//        Log.d("QUAN4", "headerHeight: " + headerHeight);
+//        Log.d("QUAN5", "" + (-top + firstVisiblePosition * c.getHeight() + headerHeight));
 
         return -top + firstVisiblePosition * c.getHeight() + headerHeight;
+    }
+
+    public int pxToDp(int px) {
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        int dp = Math.round(px / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+        return dp;
     }
 
     private void setupActionBar() {
         ActionBar actionBar = getActionBar();
         actionBar.setIcon(R.drawable.ic_transparent);
 
-        //getActionBarTitleView().setAlpha(0f);
+        getActionBarTitleView().setAlpha(0f);
     }
 
     private ImageView getActionBarIconView() {
         return (ImageView) findViewById(android.R.id.home);
     }
 
-    /*private TextView getActionBarTitleView() {
+    private TextView getActionBarTitleView() {
         int id = Resources.getSystem().getIdentifier("action_bar_title", "id", "android");
         return (TextView) findViewById(id);
-    }*/
+    }
 
     public int getActionBarHeight() {
         if (mActionBarHeight != 0) {
